@@ -1,0 +1,22 @@
+services:
+  needle:
+    build: .
+    ports:
+      - "${APP_PORT:-8888}:${APP_PORT:-8888}"
+    environment:
+      APP_PORT: "${APP_PORT:-8888}"
+      HF_HOME: /opt/needle-cache
+      NEEDLE_TELEMETRY: "0"
+      DO_NOT_TRACK: "1"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"APP_PORT\"]}/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

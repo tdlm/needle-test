@@ -1,0 +1,4 @@
+cactus-needle
+fastapi
+uvicorn[standard]
+pydantic
