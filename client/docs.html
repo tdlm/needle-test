@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Needle API usage</title>
+    <link rel="stylesheet" href="docs.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Needle API usage</h1>
+      <p class="subtitle">
+        Copy-paste examples for each endpoint. Switch language globally; snippets update when you change the base URL.
+      </p>
+      <nav class="nav">
+        <a href="index.html">Interactive tester</a>
+        <a href="/docs">OpenAPI (Swagger)</a>
+      </nav>
+    </header>
+
+    <div class="toolbar">
+      <label for="baseUrl">Base URL</label>
+      <input
+        id="baseUrl"
+        type="text"
+        placeholder="http://localhost:8888"
+        aria-label="API base URL"
+      />
+      <div class="lang-tabs" id="langTabs" role="tablist" aria-label="Code language"></div>
+    </div>
+
+    <nav class="toc" aria-label="Examples">
+      <strong>Examples</strong>
+      <ul>
+        <li><a href="#health">GET /health</a></li>
+        <li><a href="#tools">GET /tools</a></li>
+        <li><a href="#run">POST /run</a></li>
+        <li><a href="#complete-server">POST /complete (server tools)</a></li>
+        <li><a href="#complete-client">POST /complete (client tools)</a></li>
+        <li><a href="#extract">POST /extract</a></li>
+      </ul>
+    </nav>
+
+    <div id="examples"></div>
+
+    <script src="docs.js"></script>
+  </body>
+</html>
