@@ -106,3 +106,8 @@ async def extract(body: ExtractRequest) -> dict[str, Any]:
     if hasattr(result, "model_dump"):
         return {"result": result.model_dump()}
     return {"result": result}
+
+
+_client_dir = Path(__file__).resolve().parent.parent / "client"
+if _client_dir.is_dir():
+    app.mount("/client", StaticFiles(directory=str(_client_dir), html=True), name="client")

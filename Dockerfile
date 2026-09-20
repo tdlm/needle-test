@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && needle download needle3
 
 COPY app ./app
+COPY client ./client
 
 EXPOSE 8888
 

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Needle service tester</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        line-height: 1.4;
+        color: #1a1a1a;
+        background: #f4f4f5;
+      }
+      body {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        margin: 0 0 0.25rem;
+      }
+      .muted {
+        color: #555;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-top: 0.75rem;
+      }
+      input[type="text"],
+      textarea,
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 0.25rem;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font: inherit;
+      }
+      textarea {
+        min-height: 6rem;
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+      }
+      .row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      button {
+        padding: 0.5rem 0.85rem;
+        border: none;
+        border-radius: 6px;
+        background: #2563eb;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #52525b;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      pre {
+        background: #18181b;
+        color: #e4e4e7;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow: auto;
+        font-size: 0.8rem;
+        min-height: 8rem;
+      }
+      .status {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Needle HTTP tester</h1>
+    <p class="muted">
+      Calls the API from your browser. When opened from this server, the base URL defaults to this host.
+      <a href="docs.html">Usage docs</a> (TypeScript, JavaScript, Python, PHP).
+    </p>
+
+    <label for="baseUrl">Base URL</label>
+    <input id="baseUrl" type="text" placeholder="http://localhost:8888" />
+
+    <label for="endpoint">Endpoint</label>
+    <select id="endpoint">
+      <option value="GET /health">GET /health</option>
+      <option value="GET /tools">GET /tools</option>
+      <option value="POST /run">POST /run</option>
+      <option value="POST /complete">POST /complete</option>
+      <option value="POST /extract">POST /extract</option>
+    </select>
+
+    <label for="body">JSON body (POST only)</label>
+    <textarea id="body"></textarea>
+
+    <div class="row">
+      <button type="button" id="send">Send request</button>
+      <button type="button" class="secondary" id="runAll">Run all checks</button>
+      <button type="button" class="secondary" id="loadSample">Load sample body</button>
+    </div>
+
+    <p class="status" id="status"></p>
+    <pre id="output">{}</pre>
+
+    <script>
+      const baseUrlInput = document.getElementById("baseUrl");
+      const endpointSelect = document.getElementById("endpoint");
+      const bodyInput = document.getElementById("body");
+      const output = document.getElementById("output");
+      const statusEl = document.getElementById("status");
+      const sendBtn = document.getElementById("send");
+      const runAllBtn = document.getElementById("runAll");
+      const loadSampleBtn = document.getElementById("loadSample");
+
+      if (window.location.origin && window.location.origin !== "null") {
+        baseUrlInput.value = window.location.origin;
+      } else {
+        baseUrlInput.value = "http://localhost:8888";
+      }
+
+      const samples = {
+        "POST /run": { query: "what is the weather in Lagos?" },
+        "POST /complete": { text: "set thermostat to 21 cool" },
+        "POST /extract": {
+          text: "Invoice from Acme Corp total 1200 USD",
+          schema: {
+            type: "object",
+            properties: {
+              vendor: { type: "string" },
+              total: { type: "number" },
+            },
+            required: ["vendor", "total"],
+          },
+        },
+      };
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function getBase() {
+        return baseUrlInput.value.replace(/\/$/, "");
+      }
+
+      async function callApi(method, path, body) {
+        const url = `${getBase()}${path}`;
+        const init = { method, headers: {} };
+        if (body !== undefined) {
+          init.headers["Content-Type"] = "application/json";
+          init.body = JSON.stringify(body);
+        }
+        const started = performance.now();
+        const res = await fetch(url, init);
+        const text = await res.text();
+        let data = text;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          /* keep raw text */
+        }
+        const ms = Math.round(performance.now() - started);
+        return { status: res.status, ms, data };
+      }
+
+      endpointSelect.addEventListener("change", () => {
+        const key = endpointSelect.value;
+        if (samples[key]) {
+          bodyInput.value = JSON.stringify(samples[key], null, 2);
+        } else {
+          bodyInput.value = "";
+        }
+      });
+
+      loadSampleBtn.addEventListener("click", () => {
+        const key = endpointSelect.value;
+        if (samples[key]) {
+          bodyInput.value = JSON.stringify(samples[key], null, 2);
+        }
+      });
+
+      sendBtn.addEventListener("click", async () => {
+        sendBtn.disabled = true;
+        setStatus("Sending…");
+        try {
+          const [method, path] = endpointSelect.value.split(" ");
+          let body;
+          if (method === "POST") {
+            body = bodyInput.value.trim() ? JSON.parse(bodyInput.value) : {};
+          }
+          const result = await callApi(method, path, body);
+          output.textContent = JSON.stringify(result, null, 2);
+          setStatus(`HTTP ${result.status} in ${result.ms} ms`);
+        } catch (err) {
+          output.textContent = String(err);
+          setStatus("Request failed");
+        } finally {
+          sendBtn.disabled = false;
+        }
+      });
+
+      runAllBtn.addEventListener("click", async () => {
+        runAllBtn.disabled = true;
+        const results = [];
+        const checks = [
+          ["GET /health", async () => {
+            const r = await callApi("GET", "/health");
+            return r.status === 200 && r.data?.status === "ok";
+          }],
+          ["GET /tools", async () => {
+            const r = await callApi("GET", "/tools");
+            return r.status === 200 && Array.isArray(r.data?.tools) && r.data.tools.length >= 3;
+          }],
+          ["POST /run", async () => {
+            const r = await callApi("POST", "/run", samples["POST /run"]);
+            return r.data?.results?.[0]?.city === "Lagos";
+          }],
+          ["POST /complete", async () => {
+            const r = await callApi("POST", "/complete", samples["POST /complete"]);
+            return r.data?.function_calls?.[0]?.name === "set_thermostat";
+          }],
+          ["POST /extract", async () => {
+            const r = await callApi("POST", "/extract", samples["POST /extract"]);
+            return r.data?.result?.vendor === "Acme Corp";
+          }],
+        ];
+        setStatus("Running checks…");
+        for (const [name, fn] of checks) {
+          try {
+            const ok = await fn();
+            results.push({ name, ok });
+          } catch (err) {
+            results.push({ name, ok: false, error: String(err) });
+          }
+        }
+        const passed = results.filter((r) => r.ok).length;
+        output.textContent = JSON.stringify(results, null, 2);
+        setStatus(`${passed}/${results.length} checks passed`);
+        runAllBtn.disabled = false;
+      });
+
+      endpointSelect.dispatchEvent(new Event("change"));
+    </script>
+  </body>
+</html>
