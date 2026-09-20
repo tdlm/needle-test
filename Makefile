@@ -8,7 +8,7 @@ COMPOSE := docker compose
 .PHONY: help build start stop destroy logs restart shell test test-client
 
 help: ## Show available targets
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:([^=]|$$).*## ' Makefile | sort -u | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 build: ## Build the Docker image (creates .env from .env.example if missing)
 	@test -f .env || cp .env.example .env
